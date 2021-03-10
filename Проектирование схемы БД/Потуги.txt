@@ -1,0 +1,45 @@
+SELECT content.movie.title FROM content.movie
+WHERE content.movie.title = 'Star Wars: Qui-Gon Jinn III' AND ( SELECT array(
+	SELECT p.name 
+	FROM person as p inner join movie_person as m_p
+	ON p.id = m_p.person_id
+	WHERE m_p.role = 'director' AND m_p.movie_id = '29a3e9b7-85ad-4e85-abce-81e2256c0889'
+)) = '{"David Anghel", "Pauli Janhunen Calderón"}';
+
+
+# Подзапрос
+SELECT array (SELECT p.name 
+FROM person as p inner join movie_person as m_p
+ON p.id = m_p.person_id
+WHERE m_p.role = 'director' AND m_p.movie_id = 'e2bfaa51-3132-44ac-a36d-9d04a7ab5e1e');  
+
+
+SELECT content.movie.title FROM content.movie
+WHERE content.movie.title = 'Star Wars: Qui-Gon Jinn III' AND ( SELECT array(
+	SELECT p.name 
+	FROM person as p inner join movie_person as m_p
+	ON p.id = m_p.person_id
+	WHERE m_p.role = 'director' AND m_p.movie_id = '29a3e9b7-85ad-4e85-abce-81e2256c0889'
+)) = '{"David Anghel", "Pauli Janhunen Calderón"}';
+
+
+SELECT movie_id FROM movie_person
+WHERE role = 'director' AND movie_person.person_id IN (
+	SELECT person.id FROM person
+	WHERE person.name IN ('David Anghel', 'Pauli Janhunen Calderón')
+) 
+GROUP BY movie_id
+ORDER BY count(*) DESC 
+LIMIT 1;
+
+
+SELECT movie_id FROM 
+movie_person inner join movie
+ON movie_person.movie_id = movie.id
+WHERE role = 'director' AND movie.title = 'Star Wars: Qui-Gon Jinn III' AND movie_person.person_id IN (
+	SELECT person.id FROM person
+	WHERE person.name IN ('David Anghel', 'Pauli Janhunen Calderón')
+) 
+GROUP BY movie_id
+ORDER BY count(*) DESC 
+LIMIT 1;

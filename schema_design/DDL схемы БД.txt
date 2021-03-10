@@ -1,0 +1,33 @@
+CREATE TYPE role_type AS enum ('writer', 'actor', 'director');
+
+CREATE TABLE movie(
+	id uuid PRIMARY KEY,
+	title text NOT NULL,
+	plot text,
+	ratings float,
+	imdb_rating float
+);
+
+CREATE TABLE genre(
+	id uuid PRIMARY KEY,
+	name varchar(80) NOT NULL UNIQUE
+);
+
+CREATE TABLE person(
+	id uuid PRIMARY KEY,
+	name varchar(80) NOT NULL UNIQUE
+);
+
+CREATE TABLE movie_genre(
+	movie_id uuid NOT NULL REFERENCES movie(id),
+	genre_id uuid NOT NULL REFERENCES genre(id),
+	CONSTRAINT movie_genre_unique UNIQUE(movie_id, genre_id)
+);
+
+CREATE TABLE movie_person(
+	movie_id uuid NOT NULL REFERENCES movie(id) ON DELETE CASCADE,
+	person_id uuid NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+	role role_type,
+	CONSTRAINT movie_person_unique UNIQUE(movie_id, person_id, role)
+);
+
