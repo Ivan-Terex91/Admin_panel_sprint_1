@@ -1,5 +1,13 @@
 from dataclasses import dataclass, field
+from enum import Enum
 import uuid
+
+
+class RoleType(Enum):
+    """Роли в фильме"""
+    actor = "actor"
+    writer = "writer"
+    director = "director"
 
 
 @dataclass
@@ -36,6 +44,6 @@ class MovieGenre:
 @dataclass
 class MoviePerson:
     """Связь фильмов и людей"""
-    role: str
+    role: RoleType
     movie_id: uuid.UUID = field(default_factory=uuid.uuid4)
     person_id: uuid.UUID = field(default_factory=uuid.uuid4)
