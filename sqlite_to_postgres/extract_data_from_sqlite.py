@@ -1,3 +1,6 @@
+import json
+
+
 class SQLiteLoader:
     """Класс загрузки фильмов из sqlite."""
 
@@ -20,7 +23,6 @@ class SQLiteLoader:
         for _movie in self.all_movie_list:
             movie = Movie(self.cursor, *_movie)
             movie.transform_data()
-            del movie.__dict__["cursor"]
             self.transform_movie_list.append(movie.__dict__)
 
         return self.transform_movie_list
@@ -41,7 +43,7 @@ class Movie:
         self.writers_names = set()
         self.actors = []
         self.writer = writer
-        self.writers = eval(writers) if writers else None
+        self.writers = json.loads(writers) if writers else None
         self.persons = []
 
     def actor_list(self):
@@ -82,8 +84,6 @@ class Movie:
             self.writers_names.add(writer_data[1])
         self.writers_names = list(self.writers_names)
 
-        del self.writer
-
     def person_list(self):
         """Формируем список людей и их ролями(профессиями)."""
         directors = [(director, "director") for director in self.directors] if self.directors else [(None, "director")]
@@ -98,3 +98,12 @@ class Movie:
         self.actor_list()
         self.writer_list()
         self.person_list()
+        del self.cursor, self.writer
+
+
+if __name__ == '__main__':
+    import sqlite3
+
+    with sqlite3.connect('db.sqlite') as sqlite_conn:
+        sqlite_loader = SQLiteLoader(sqlite_conn)
+        data = sqlite_loader.load_movies()
