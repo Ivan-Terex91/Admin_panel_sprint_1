@@ -1,4 +1,7 @@
-import my_dataclasses
+from my_dataclasses import Person, Genre, Movie, MoviePerson, MovieGenre
+import psycopg2.extras
+
+psycopg2.extras.register_uuid()
 
 
 class PostgresSaver:
@@ -12,27 +15,17 @@ class PostgresSaver:
     def load_movie(self, single_movie: dict) -> str:
         """Загрузка фильма."""
 
-        movie = my_dataclasses.Movie(title=single_movie.get("title"), plot=single_movie.get("description"),
-                                     imdb_rating=single_movie.get("imdb_rating"))
-
-        data = (str(movie.id), movie.title, movie.plot, movie.imdb_rating)
-
+        movie = Movie(title=single_movie.get("title"), plot=single_movie.get("description"),
+                      imdb_rating=single_movie.get("imdb_rating"))
+        data = (movie.id, movie.title, movie.plot, movie.imdb_rating)
         self.cursor.execute(f"""
-                                 SELECT content.movie.id FROM content.movie
-                                 WHERE content.movie.id = %s;
-                                 """, (str(movie.id),))
+                 INSERT INTO content.movie(id, title, plot, imdb_rating)
+                 VALUES (%s, %s, %s, %s)
+                 ON CONFLICT (id) DO NOTHING
+                 RETURNING content.movie.id;
+                 """, data)
         movie_returning_id = self.cursor.fetchone()
-
-        if not movie_returning_id:
-            self.cursor.execute(f"""
-                     INSERT INTO content.movie(id, title, plot, imdb_rating)
-                     VALUES (%s, %s, %s, %s)
-                     ON CONFLICT (id) DO NOTHING
-                     RETURNING content.movie.id;
-                     """, data)
-            movie_returning_id = self.cursor.fetchone()
-        movie_id = movie_returning_id[0]
-
+        movie_id = movie_returning_id[0] if movie_returning_id else movie.id
         return movie_id
 
     def load_genre_and_movie_genre(self, single_movie, movie_id):
@@ -40,26 +33,27 @@ class PostgresSaver:
 
         genres = single_movie.get("genre")
         for genre in genres:
-            _genre = my_dataclasses.Genre(name=genre)
-            data = (str(_genre.id), _genre.name)
+            _genre = Genre(name=genre)
+            data = (_genre.id, _genre.name)
             self.cursor.execute(f"""
-                                SELECT content.genre.id FROM content.genre
-                                WHERE content.genre.name = %s;
-                                """, (_genre.name,))
-            genre_returning_id = self.cursor.fetchone()
-
-            if not genre_returning_id:
-                self.cursor.execute(f"""
+                WITH query_sel AS (
+                    SELECT content.genre.id FROM content.genre
+                    WHERE content.genre.name = %s
+                ), query_ins AS (
                     INSERT INTO content.genre(id, name)
                     VALUES (%s, %s)
                     ON CONFLICT (name) DO NOTHING
-                    RETURNING content.genre.id;
-                    """, data)
-                genre_returning_id = self.cursor.fetchone()
-            genre_id = genre_returning_id[0]
+                    RETURNING id
+                )
+    
+                SELECT %s as id FROM query_ins
+                UNION ALL
+                SELECT id AS id from query_sel;
+            """, (_genre.name, *data, _genre.id))
+            genre_id = self.cursor.fetchone()[0]
 
-            movie_genre = my_dataclasses.MovieGenre(movie_id=movie_id, genre_id=genre_id)
-            data = (str(movie_genre.movie_id), str(movie_genre.genre_id))
+            movie_genre = MovieGenre(movie_id=movie_id, genre_id=genre_id)
+            data = (movie_genre.movie_id, movie_genre.genre_id)
             self.cursor.execute(f"""
                                 INSERT INTO content.movie_genre(movie_id, genre_id)
                                 VALUES (%s, %s)
@@ -71,28 +65,29 @@ class PostgresSaver:
 
         person_list = single_movie.get("persons")
         for person in person_list:
-            _person = my_dataclasses.Person(name=person[0], role=person[1])
+            _person = Person(name=person[0], role=person[1])
             if not _person.name:
                 continue
-            data = (str(_person.id), _person.name)
+            data = (_person.id, _person.name)
             self.cursor.execute(f"""
-                                   SELECT content.person.id FROM content.person
-                                   WHERE content.person.name = %s;
-                               """, (_person.name,))
-            person_returning_id = self.cursor.fetchone()
+                WITH query_sel AS (
+                    SELECT content.person.id FROM content.person
+                    WHERE content.person.name = %s
+                    ), query_ins AS (
+                    INSERT INTO content.person(id, name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (name) DO NOTHING
+                    RETURNING id
+                )
 
-            if not person_returning_id:
-                self.cursor.execute(f"""
-                               INSERT INTO content.person(id, name)
-                               VALUES (%s, %s)
-                               ON CONFLICT (name) DO NOTHING
-                               RETURNING content.person.id;
-                               """, data)
-                person_returning_id = self.cursor.fetchone()
-            person_id = person_returning_id[0]
+                SELECT %s as id FROM query_ins
+                UNION ALL
+                SELECT id AS id from query_sel;
+                """, (_person.name, *data, _person.id))
+            person_id = self.cursor.fetchone()[0]
 
-            movie_person = my_dataclasses.MoviePerson(movie_id=movie_id, person_id=person_id, role=_person.role)
-            data = (str(movie_person.movie_id), str(movie_person.person_id), movie_person.role)
+            movie_person = MoviePerson(movie_id=movie_id, person_id=person_id, role=_person.role)
+            data = (movie_person.movie_id, movie_person.person_id, movie_person.role)
             self.cursor.execute(f"""
                                INSERT INTO content.movie_person(movie_id, person_id, role)
                                VALUES (%s, %s, %s)
