@@ -1,10 +1,14 @@
+CREATE SCHEMA content; 
+
+SET search_path TO content,public; 
+
+
 CREATE TYPE role_type AS enum ('writer', 'actor', 'director');
 
 CREATE TABLE movie(
 	id uuid PRIMARY KEY,
 	title text NOT NULL,
 	plot text,
-	ratings float,
 	imdb_rating float
 );
 
@@ -19,8 +23,8 @@ CREATE TABLE person(
 );
 
 CREATE TABLE movie_genre(
-	movie_id uuid NOT NULL REFERENCES movie(id),
-	genre_id uuid NOT NULL REFERENCES genre(id),
+	movie_id uuid NOT NULL REFERENCES movie(id) ON DELETE CASCADE,
+	genre_id uuid NOT NULL REFERENCES genre(id) ON DELETE CASCADE,
 	CONSTRAINT movie_genre_unique UNIQUE(movie_id, genre_id)
 );
 
