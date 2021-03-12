@@ -43,3 +43,72 @@ WHERE role = 'director' AND movie.title = 'Star Wars: Qui-Gon Jinn III' AND movi
 GROUP BY movie_id
 ORDER BY count(*) DESC 
 LIMIT 1;
+
+
+
+
+############ CTE
+
+with s as (
+	SELECT content.genre.id FROM content.genre
+	WHERE content.genre.name = 'Adventure'
+), i as (
+    insert into content.genre(id, name)
+    values ('a81078d1-7fe6-42d2-a373-08b0be8a85e3', 'Adventure')
+    ON CONFLICT (name) DO NOTHING
+    returning id
+)
+
+
+select 'a81078d1-7fe6-42d2-a373-08b0be8a85e3' as id from i
+union all
+select id as id from s;
+
+
+
+VALUES (%s, %s)
+                    ON CONFLICT (name) DO NOTHING
+                    RETURNING content.genre.id;
+
+
+
+WITH query_sel AS (
+    SELECT content.genre.id FROM content.genre
+    WHERE content.genre.name = '{_genre.name}'
+), query_ins as (
+    INSERT INTO content.genre(id, name)
+    VALUES {data}
+    ON CONFLICT (name) DO NOTHING
+    RETURNING id
+)
+
+SELECT '{_genre.id}' as id FROM query_ins
+UNION ALL
+SELECT id AS id from query_sel;
+
+
+WITH query_sel AS (
+    SELECT content.person.id FROM content.person
+    WHERE content.person.name = '{_person.name}'
+), query_ins as (
+    INSERT INTO content.person(id, name)
+    VALUES {data}
+    ON CONFLICT (name) DO NOTHING
+    RETURNING id
+)
+
+SELECT '{_person.id}' as id FROM query_ins
+UNION ALL
+SELECT id AS id from query_sel;
+
+###########
+
+
+
+
+
+
+
+
+
+
