@@ -5,7 +5,6 @@ from .models import Movie, Person, Genre
 
 class PersonInline(admin.TabularInline):
     model = Movie.persons.through
-    # fields = ('person', 'role')
     extra = 0
     verbose_name = 'человек учавствовавший в кинопроизведении'
     verbose_name_plural = 'люди учавствовавшие в кинопроизведении'
