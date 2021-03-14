@@ -19,13 +19,14 @@ class Movie(TimeStampedModel):
     id = models.UUIDField(_('идентификатор'), primary_key=True, default=uuid4, editable=False)
     title = models.CharField(_('название'), max_length=255)
     description = models.TextField(_('описание'), blank=True)
-    creation_date = models.DateField(_('дата создания фильма'), blank=True)
-    age_limit = models.PositiveSmallIntegerField(_('ограничение по возрасту'), validators=[MaxValueValidator(21)])
-    rating = models.FloatField(_('рейтинг пользователей'), blank=True, validators=[MinValueValidator(0)])
-    imdb_rating = models.FloatField(_('IMDB рейтинг'), validators=[MinValueValidator(0)])
-    movie_type = models.CharField(_('тип'), max_length=20, choices=MovieType.choices)
+    creation_date = models.DateField(_('дата создания фильма'), blank=True, db_index=True)
+    age_limit = models.PositiveSmallIntegerField(_('ограничение по возрасту'), validators=[MaxValueValidator(21)],
+                                                 db_index=True)
+    rating = models.FloatField(_('рейтинг пользователей'), blank=True, validators=[MinValueValidator(0)], db_index=True)
+    imdb_rating = models.FloatField(_('IMDB рейтинг'), validators=[MinValueValidator(0)], db_index=True)
+    movie_type = models.CharField(_('тип'), max_length=20, choices=MovieType.choices, db_index=True)
     file_path = models.FileField(_('файл'), upload_to='movie_files/', blank=True)
-    genres = models.ManyToManyField('Genre', verbose_name=_('Жанры'))
+    genres = models.ManyToManyField('Genre', verbose_name=_('Жанры'), db_index=True)
     persons = models.ManyToManyField('Person', through='MoviePerson')
 
     class Meta:
@@ -69,12 +70,14 @@ class Person(TimeStampedModel):
     id = models.UUIDField(_('идентификатор'), primary_key=True, default=uuid4, editable=False)
     firstname = models.CharField(_('имя'), max_length=128)
     lastname = models.CharField(_('фамилия'), max_length=128)
+    birthdate = models.DateField(_('дата рождения'))
+    birthplace = models.CharField(_('место рождения'), max_length=255)
 
     class Meta:
         verbose_name = _('Человек')
         verbose_name_plural = _('Люди')
         constraints = [
-            models.UniqueConstraint(fields=['firstname', 'lastname'], name='firstname_lastname_unique')
+            models.UniqueConstraint(fields=['firstname', 'lastname', 'birthdate', 'birthplace'], name='person_unique')
         ]
 
     def __str__(self):
@@ -84,6 +87,7 @@ class Person(TimeStampedModel):
         """Подстраховка на добавление одиннаковых людей."""
         self.firstname = self.firstname.capitalize()
         self.lastname = self.lastname.capitalize()
+        self.birthplace = self.birthplace.capitalize()
         super().clean()
 
 
@@ -99,7 +103,7 @@ class MoviePerson(TimeStampedModel):
     id = models.UUIDField(_('идентификатор'), primary_key=True, default=uuid4, editable=False)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, verbose_name=_('кинопроизведение'))
     person = models.ForeignKey(Person, on_delete=models.CASCADE, verbose_name=_('человек'))
-    role = models.CharField(_('роль'), max_length=20, choices=RoleType.choices)
+    role = models.CharField(_('роль'), max_length=20, choices=RoleType.choices, db_index=True)
 
     class Meta:
         constraints = [

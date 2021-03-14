@@ -20,7 +20,7 @@ class MovieInline(admin.TabularInline):
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
     """Кинопроизведения."""
-    list_display = ('title', 'movie_type', 'creation_date', 'rating')
+    list_display = ('title', 'movie_type', 'creation_date', 'rating', 'age_limit')
     exclude = ('id',)
     inlines = [PersonInline]
     search_fields = ('title',)
@@ -30,7 +30,7 @@ class MovieAdmin(admin.ModelAdmin):
 @admin.register(Person)
 class PersonAdmin(admin.ModelAdmin):
     """Люди."""
-    list_display = ('firstname', 'lastname')
+    list_display = ('firstname', 'lastname', 'birthdate', 'birthplace')
     exclude = ('id',)
     search_fields = ('firstname', 'lastname')
     inlines = [MovieInline]
